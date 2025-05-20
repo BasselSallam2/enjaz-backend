@@ -1,0 +1,269 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  name       String    
+  phone      String?    @unique
+  countrycode String?
+  password   String?
+  AuthID     String?    @unique
+  createdAt  DateTime   @default(now())
+  isDeleted   Boolean    @default(false)
+  uid        String?    @unique  
+
+  resetCode  String?
+  resetexpire DateTime?
+
+  loginCode  String?
+  loginexpire DateTime?
+
+   chabgeemailCode  String?
+   changeemailexpire DateTime?
+
+  resetpermession Boolean @default(false)
+  changeemailpermession Boolean @default(false)
+
+  ordersCounter Int @default(0)
+  rateAvg  Int @default(0)
+  rateCounter Int @default(0)
+  totalRevenue Int @default(0)
+  lastOrder  DateTime?
+
+  type       String  @default("Regular customer")
+  mobileToken   String? 
+
+  isVerified     Boolean @default(false)
+  verificationCode String?
+  
+
+  SupportChat     SupportChat?
+  OrderChat        OrderChat?
+  CoustmerNotification  CoustmerNotification[]
+
+
+
+
+  orders            Orders[]
+  addresses         Address[]
+}
+
+model Orders {
+  number     Int         @id @default(autoincrement())
+  userid     String
+  type       String 
+  delivery   String 
+  paymentStatus String 
+  status        String
+  files         Json? 
+  address       String?
+  user       User     @relation(fields:[userid] , references:[id])
+  notes      String?
+  translationfrom String?
+  translationto Json?
+  cancelationreason String?
+  rate Int?
+  comment String?
+  cost  Int?
+  paid  Int?
+  numberofletters Int?
+  PrintingDetails   PrintingDetails[] 
+
+  employeeId  String?
+  Employee Employee? @relation(fields:[employeeId] , references:[id])
+  employeeNotes String?
+  
+ isDeleted Boolean  @default(false)
+
+  receiveDate   DateTime?
+  operationDate DateTime?
+  deleviryDate  DateTime?
+  finishDate    DateTime?
+
+  createdAt  DateTime   @default(now())
+}
+
+model Address {
+  id         String     @id @default(uuid())
+  name       String     
+  address    String 
+  location   String?    
+  userid     String
+  user       User     @relation(fields:[userid] , references:[id])
+}
+
+model Languge {
+  id            String     @id @default(uuid())
+  name          String     @unique
+  Arabicname    String     @unique
+  cost          Int
+
+}
+
+model OfficeAddress {
+  id          Int    @id @default(autoincrement())
+  address     String
+}
+
+model Tax {
+  id          Int    @id @default(autoincrement())
+  tax Int 
+}
+
+model Socialmedia {
+  id          Int    @id @default(autoincrement())
+  facebook String?
+  linkedin String?
+  instegram String?
+  youtube String?
+  tiktok String?
+  whatsapp String?
+
+}
+
+model PrintingCollors {
+    id         String     @id @default(uuid())
+    color      String   @unique
+    ArabicColor  String @unique
+    cost Int 
+}
+
+model PrintingCovers {
+
+     id         String     @id @default(uuid())
+    name        String  @unique
+    arabicname  String @unique
+    cost Int
+
+}
+
+model PrintingDetails {
+  id         String     @id @default(uuid())
+  color      String
+  cover      String
+  copies     Int
+  pages      Int?
+  file       String
+
+  orderId   Int
+  Orders    Orders    @relation(fields:[orderId] , references:[number])
+}
+
+model Terms {
+  id         String     @id @default(uuid())
+  EnglishPrivacy  String  @db.Text 
+  ArabicPrivacy String  @db.Text 
+  EnglishTerms String  @db.Text 
+  ArabicTerms String  @db.Text 
+  EnglishUsage String  @db.Text 
+  ArabicUsage String  @db.Text 
+
+}
+
+model Employee {
+   id         String     @id @default(uuid())
+   email      String     @unique
+   phone      String     @unique
+   name       String
+   password   String
+   title      String     @default("employee")
+   department  String
+   isDeleted  Boolean @default(false)
+   
+   Orders Orders[]
+   SupportChat  SupportChat[]
+   OrderChat      OrderChat[]
+   EmployeeNotification   EmployeeNotification[]
+}
+
+model Balance {
+  id         String     @id @default(uuid())
+  withdrawn  Int        @default(0)
+}
+
+model Margin {
+  id         String     @id @default(uuid())
+  month      String 
+  revenue     Int 
+  createdAt  DateTime   @default(now())
+}
+
+model SupportChat {
+   id         String     @id @default(uuid())
+   lockedId   String?
+   Employee       Employee?      @relation(fields:[lockedId] , references:[id])
+   userid     String     @unique
+   User       User      @relation(fields:[userid] , references:[id])
+   socketIdUser String?
+   SocketIdEmployee String? 
+
+   SupportMessages   SupportMessages[]
+   isread           Boolean  @default(false)
+}
+
+model SupportMessages {
+  id         String     @id @default(uuid())
+  message    String 
+  sender     String
+  senderId   String
+  createdAt  DateTime   @default(now())
+  chatid      String
+  SupportChat SupportChat @relation(fields:[chatid] , references:[id])
+}
+
+model OrderChat {
+   id         String     @id @default(uuid())
+   lockedId   String?
+   Employee       Employee?      @relation(fields:[lockedId] , references:[id])
+   userid     String     @unique
+   User       User      @relation(fields:[userid] , references:[id])
+   socketIdUser String?
+   SocketIdEmployee String? 
+
+   OrderMessages   OrderMessages[]
+   isread           Boolean  @default(false)
+}
+
+model OrderMessages {
+  id         String     @id @default(uuid())
+  message    String 
+  sender     String
+  senderId   String?
+  createdAt  DateTime   @default(now())
+  chatid      String
+  OrderChat   OrderChat @relation(fields:[chatid] , references:[id])
+}
+
+model CoustmerNotification {
+  id         String     @id @default(uuid())
+  userid     String     
+  User       User   @relation(fields:[userid] , references:[id])
+  title      String
+  body       String
+  isRead     Boolean  @default(false)
+  type       String
+  serviceId  String?
+   createdAt  DateTime   @default(now())
+}
+
+model EmployeeNotification {
+  id         String     @id @default(uuid())
+  employeeId  String     
+  Employee     Employee  @relation(fields:[employeeId] , references:[id])
+  type       String
+  serviceId  String
+  title      String
+  body       String
+  isRead     Boolean  @default(false)
+   createdAt  DateTime   @default(now())
+
+}
