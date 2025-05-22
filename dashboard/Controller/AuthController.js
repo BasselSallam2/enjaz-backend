@@ -15,6 +15,7 @@ export const login = async (req , res , next) => {
         if(!email || !password) {
             return res.status(401).json({error : "Please fill all fields"})
         }
+        console.log(req.body);
 
         const formatedemail = email.toLowerCase();
         const employee = await prisma.employee.findUnique({
@@ -33,6 +34,7 @@ export const login = async (req , res , next) => {
             employeeemail : employee.email ,
             title : employee.title ,
         }
+       
         const JWTsecretKey = process.env.JWT_SECRET_DASHBOARD;
         const token = jwt.sign(JWTPayload , JWTsecretKey);
         res.cookie("token" , token , {
@@ -43,6 +45,7 @@ export const login = async (req , res , next) => {
 
     }
     catch(error) {
+        next(error) ;
 
     }
 }

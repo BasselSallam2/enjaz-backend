@@ -212,69 +212,102 @@ export const currentOrders = async (req, res , next) => {
     }
 }
 
-export const updateOrder = async (req, res , next) => {
+export const updateOrder = async (req, res, next) => {
     try {
-        let {orderId} = req.params ;
-        let {numberofletters , status , cost} = req.body ;
-        let allowredStatuses = [ "Under Review" , "Offer Sent" ,  "In Progress" , "In delivery" , "Finished" ,"Cancelled" ] ;
-        cost = parseFloat(cost) ;
-        numberofletters = parseInt(numberofletters) ;
-        orderId = parseInt(orderId) ;
+        console.log("====== Incoming Request ======");
+        console.log("req.params:", req.params);
+        console.log("req.body:", req.body);
 
-        if(status && !allowredStatuses.includes(status)) {
-            return res.status(401).json({error : "status must be one of the following: Under Review , Offer Sent , In Progress , In delivery , Finished , Cancelled"});
+        let { orderId } = req.params;
+        let { numberofletters, status, cost } = req.body;
+
+        let allowedStatuses = ["Under Review", "Offer Sent", "In Progress", "In delivery", "Finished", "Cancelled"];
+
+        cost = parseFloat(cost);
+        numberofletters = parseInt(numberofletters);
+        orderId = parseInt(orderId);
+
+        console.log("Parsed Values =>", {
+            orderId,
+            numberofletters,
+            cost,
+            status
+        });
+
+        if (status && !allowedStatuses.includes(status)) {
+            console.log("❌ Invalid status:", status);
+            return res.status(401).json({
+                error: "status must be one of the following: Under Review, Offer Sent, In Progress, In delivery, Finished, Cancelled"
+            });
         }
 
         const order = await prisma.orders.findUnique({
-            where : {
-                number : orderId,
+            where: {
+                number: orderId,
             },
-            select:{ numberofletters:true , cost:true , status:true , user:true}
+            select: {
+                numberofletters: true,
+                cost: true,
+                status: true,
+                user: true
+            }
         });
 
-        if(!order) {
-            return res.status(401).json({error : "No order found"})
+        if (!order) {
+            console.log("❌ No order found with number:", orderId);
+            return res.status(401).json({ error: "No order found" });
         }
 
-        const currentStatus = order.status ;
-        const newstatus = status ;
-
+        console.log("✅ Existing Order Found:", order);
 
         const updatedOrder = await prisma.orders.update({
-            where : {
-                number : orderId,
+            where: {
+                number: orderId,
             },
-            data:{
-                numberofletters : numberofletters ,
-                cost : cost ,
-                status : status 
+            data: {
+                numberofletters: numberofletters,
+                cost: cost,
+                status: status
             },
         });
 
-        
-            let fireBaseToken = order.user.mobileToken ;
-            let title = `Order ${orderId} Status Updated` ;
-            let body = `${newstatus}` ;
-            let data = {
-                orderId: `${orderId}`,
-                status: newstatus,
+        console.log("✅ Order Updated:", updatedOrder);
+
+        let fireBaseToken = order.user.mobileToken;
+        let title = `Order ${orderId} Status Updated`;
+        let body = `${status}`;
+        let data = {
+            orderId: `${orderId}`,
+            status: status,
+        };
+
+        console.log("📲 Sending Notification:", { fireBaseToken, title, body, data });
+
+        await sendNotification(fireBaseToken, title, body, data);
+
+        await prisma.coustmerNotification.create({
+            data: {
+                userid: order.user.id,
+                title: title,
+                body: body,
+                type: "Order Status Changed",
+                serviceId: orderId.toString()
             }
-           
-            await sendNotification(fireBaseToken , title , body , data) ;
-            await prisma.coustmerNotification.create({data:{
-                userid:order.user.id , title:title , body:body , type:"Order Status Changed" , serviceId:orderId.toString()
-            }})
-       
+        });
 
-        res.status(200).json({message: "Order updated successfully"});
+        console.log("🔔 Notification Saved to DB");
 
+        res.status(200).json({
+            message: "Order updated successfully",
+            order: updatedOrder
+        });
 
-    }
-    catch(error){
-        console.log(error);
+    } catch (error) {
+        console.log("🔥 Error in updateOrder:", error);
         next(error);
     }
 }
+
 export const getOrder = async (req, res , next) => {
     try{
         let {orderId} = req.params ;
